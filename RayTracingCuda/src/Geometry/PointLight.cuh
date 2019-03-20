@@ -46,7 +46,7 @@
 		__device__ __host__  const Math::Vector3f & position() const
 		{ return m_position ; }
 
-		__device__ __host__ float getRadius() {
+		__device__ __host__ float getRadius() const {
 			return m_radius;
 		}
 
