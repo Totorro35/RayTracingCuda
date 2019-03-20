@@ -36,35 +36,35 @@
 
 	public:
 
-		int getId() {
+		__device__ __host__ int getId() {
 			return m_id;
 		}
 
-		void setId(int id) {
+		__device__ __host__ void setId(int id) {
 			m_id = id;
 		}
 
-		double getTaille() {
+		__device__ __host__ double getTaille() {
 			return m_taille;
 		}
 
-		void setTaille(double taille) {
+		__device__ __host__ void setTaille(double taille) {
 			m_taille = taille;
 		}
 
-		double getFresnel() {
+		__device__ __host__ double getFresnel() {
 			return m_fresnel;
 		}
 
-		void setFresnel(double fresnel) {
+		__device__ __host__ void setFresnel(double fresnel) {
 			m_fresnel = fresnel;
 		}
 
-		double getRepartition() {
+		__device__ __host__ double getRepartition() {
 			return m_repartition;
 		}
 
-		void setRepartition(double repartition) {
+		__device__ __host__ void setRepartition(double repartition) {
 			m_repartition = repartition;
 		}
 

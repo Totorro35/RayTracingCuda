@@ -26,7 +26,7 @@ public:
 		}
 		size = i;
 		std::cout << "NB_Tri :" << i << std::endl;
-		m_lights[0] = PointLight(Math::makeVector(1.0f,1.0f,1.0f),RGBColor(1.0f,1.0f,1.0f)*10);
+		m_lights[0] = PointLight(Math::makeVector(0.0f,0.0f,4.95f),RGBColor(1.0f,1.0f,1.0f)*10);
 	}
 
 	__device__ __host__ bool intersect(Ray const & ray, RayTriangleIntersection & intersect) const {

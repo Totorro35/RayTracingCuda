@@ -138,41 +138,41 @@ public:
 	static std::vector<Triangle> generateCornell() {
 		std::vector<Triangle> result;
 
-		Material ocre(RGBColor(), RGBColor(1.0, 0.87, 0.53), RGBColor(0, 0, 0), 4, RGBColor(), "", 0.4);
-		ocre.setId(4);
+		Material ocre(RGBColor(), RGBColor(1.0, 0.87, 0.53), RGBColor(0, 0, 0), 4, RGBColor(), "", 0.4f);
+		ocre.setId(0);
 		Material* d_ocre;
 		cudaMalloc((void**)&d_ocre, sizeof(Material));
 		cudaMemcpy(d_ocre, &ocre, sizeof(Material), cudaMemcpyHostToDevice);
 
-		Material pourpre(RGBColor(), RGBColor(0.70, 0.13, 0.13), RGBColor(0, 0, 0), 4, RGBColor(), "", 0.4);
-		pourpre.setId(4);
+		Material pourpre(RGBColor(), RGBColor(0.70, 0.13, 0.13), RGBColor(0, 0, 0), 4, RGBColor(), "", 0.4f);
+		pourpre.setId(0);
 		Material* d_pourpre;
 		cudaMalloc((void**)&d_pourpre, sizeof(Material));
 		cudaMemcpy(d_pourpre, &pourpre, sizeof(Material), cudaMemcpyHostToDevice);
 
-		Material  emeraude(RGBColor(), RGBColor(0.07, 0.72, 0.29), RGBColor(0, 0, 0), 4, RGBColor(), "", 0.4);
-		emeraude.setId(4);
+		Material  emeraude(RGBColor(), RGBColor(0.07, 0.72, 0.29), RGBColor(0, 0, 0), 4, RGBColor(), "", 0.4f);
+		emeraude.setId(0);
 		Material* d_emeraude;
 		cudaMalloc((void**)&d_emeraude, sizeof(Material));
 		cudaMemcpy(d_emeraude, &emeraude, sizeof(Material), cudaMemcpyHostToDevice);
 
-		Material  ivoire(RGBColor(), RGBColor(1.0, 1.0, 1.0), RGBColor(0, 0, 0), 4, RGBColor(1.0, 1.0, 1.0), "", 0.4);
+		Material  ivoire(RGBColor(), RGBColor(1.0, 1.0, 1.0), RGBColor(0, 0, 0), 4, RGBColor(1.0, 1.0, 1.0), "", 0.4f);
 		Material* d_ivoire;
 		cudaMalloc((void**)&d_ivoire, sizeof(Material));
 		cudaMemcpy(d_ivoire, &ivoire, sizeof(Material), cudaMemcpyHostToDevice);
 
-		Material  turquoise(RGBColor(), RGBColor(0.06, 157 / 255., 232 / 255.), RGBColor(0, 0, 0), 100, RGBColor(), "", 0.4);
-		turquoise.setId(2);
+		Material  turquoise(RGBColor(), RGBColor(0.06, 157 / 255., 232 / 255.), RGBColor(0, 0, 0), 100, RGBColor(), "", 0.4f);
+		turquoise.setId(0);
 		Material* d_turquoise;
 		cudaMalloc((void**)&d_turquoise, sizeof(Material));
 		cudaMemcpy(d_turquoise, &turquoise, sizeof(Material), cudaMemcpyHostToDevice);
 
-		Material  ebene(RGBColor(), RGBColor(53 / 255., 53 / 255., 52 / 255.), RGBColor(0, 0, 0), 4, RGBColor(), "", 0.4);
+		Material  ebene(RGBColor(), RGBColor(53 / 255., 53 / 255., 52 / 255.), RGBColor(0, 0, 0), 4, RGBColor(), "", 0.4f);
 		Material* d_ebene;
 		cudaMalloc((void**)&d_ebene, sizeof(Material));
 		cudaMemcpy(d_ebene, &ebene, sizeof(Material), cudaMemcpyHostToDevice);
 
-		Material  miroir_material(RGBColor(), RGBColor(1.0, 1.0, 1.0), RGBColor(0.0, 0.0, 0.0), 100000, RGBColor(), "", 0.4);
+		Material  miroir_material(RGBColor(), RGBColor(1.0, 1.0, 1.0), RGBColor(0.0, 0.0, 0.0), 100000, RGBColor(), "", 0.4f);
 		Material* d_miroir_material;
 		cudaMalloc((void**)&d_miroir_material, sizeof(Material));
 		cudaMemcpy(d_miroir_material, &miroir_material, sizeof(Material), cudaMemcpyHostToDevice);
