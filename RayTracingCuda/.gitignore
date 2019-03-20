@@ -1,0 +1,9 @@
+#RayTracingCuda
+
+x64
+SDL2.dll
+
+RayTracingCuda.vcxproj
+
+RayTracingCuda.vcxproj.user
+RayTracingCuda.vcxproj.filters
