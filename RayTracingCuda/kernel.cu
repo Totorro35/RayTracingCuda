@@ -39,6 +39,12 @@ int main(int argc, char *argv[])
 	std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 	std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
 
+	curandState *d_rand_state;
+	cudaMalloc((void **)&d_rand_state, width * height * sizeof(curandState));
+
+	scene::render_init << <grid_size, block_size >> > (width, height, d_rand_state);
+
+
 	while (1) {
 
 		t2 = std::chrono::high_resolution_clock::now();
@@ -57,7 +63,7 @@ int main(int argc, char *argv[])
 			nb_pass = 1;
 		}
 
-		scene.compute(d_fbf, grid_size, block_size, nb_pass,reset);
+		scene.compute(d_fbf, grid_size, block_size, nb_pass,reset, d_rand_state);
 		cudaDeviceSynchronize();
 
 		visu.blit(d_fbf, block_size, grid_size,nb_pass);
@@ -179,6 +185,7 @@ void update(bool * keys)
 
 bool updateCamera(bool * keys,Camera& cam, float dt) {
 
+	bool result = false;
 	float forward = 0;
 	float upward = 0;
 	float rightward = 0;
@@ -190,42 +197,52 @@ bool updateCamera(bool * keys,Camera& cam, float dt) {
 	if (keys[0])
 	{
 		inclination -= angle_speed * dt;
+		result = true;
 	}
 	if (keys[1])
 	{
 		inclination += angle_speed * dt;
+		result = true;
 	}
 	if (keys[2])
 	{
 		azimuth += angle_speed * dt;
+		result = true;
 	}
 	if (keys[3])
 	{
 		azimuth -= angle_speed * dt;
+		result = true;
 	}
 	if (keys[4])
 	{
 		forward += speed * dt;
+		result = true;
 	}
 	if (keys[5])
 	{
 		forward -= speed * dt;
+		result = true;
 	}
 	if (keys[6])
 	{
 		rightward += speed * dt;
+		result = true;
 	}
 	if (keys[7])
 	{
 		rightward -= speed * dt;
+		result = true;
 	}
 	if (keys[8])
 	{
 		upward += speed * dt;
+		result = true;
 	}
 	if (keys[9])
 	{
 		upward -= speed * dt;
+		result = true;
 	}
 
 	if (inclination > 3)
@@ -239,15 +256,15 @@ bool updateCamera(bool * keys,Camera& cam, float dt) {
 
 	Math::Vector3f translation = Math::makeVector(rightward, forward, upward);
 
-	bool reset = translation != Math::makeVector(0.0f, 0.0f, 0.0f);
-	reset = reset || inclination != 0 || azimuth != 0;
+	//bool reset = translation != Math::makeVector(0.0f, 0.0f, 0.0f);
+	//reset = reset || inclination != 0 || azimuth != 0;
 
-	if (reset) {
+	if (result) {
 		cam.translateLocal(translation);
 		Math::Vector3f direction = Math::makeVector(sin(inclination) * cos(azimuth), sin(inclination) * sin(azimuth), cos(inclination));
 		cam.setTarget(cam.getPosition()+direction);
 
 	}
 
-	return reset;
+	return result;
 }

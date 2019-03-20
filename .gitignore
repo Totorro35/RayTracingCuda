@@ -2,3 +2,5 @@
 .vs
 x64
 RayTracingCuda.sln
+CUDA_RT
+CUDA_RT.sln

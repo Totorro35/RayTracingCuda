@@ -10,12 +10,32 @@
 #include "Geometry/Material.cuh"
 #include "Geometry/RayTriangleIntersection.cuh"
 #include "Structure/Cornell.cuh"
+#include <curand_kernel.h>
 
 #include "Structure/BVH.cuh"
 
 namespace scene {
 
-	__device__ __host__ float ombrage(const RayTriangleIntersection& intersection, PointLight const& light, const BVH* bvh) {
+	__global__ void render_init(int max_y, int max_x, curandState *rand_state) {
+		int i = threadIdx.x + blockIdx.x * blockDim.x;
+		int j = threadIdx.y + blockIdx.y * blockDim.y;
+		if ((i >= max_x) || (j >= max_y)) return;
+		int pixel_index = j * max_x + i;
+		//Each thread gets same seed, a different sequence number, no offset
+		curand_init(1984, pixel_index, 0, &rand_state[pixel_index]);
+	}
+
+#define RANDVEC3 Math::makeVector(curand_uniform(local_rand_state),curand_uniform(local_rand_state),curand_uniform(local_rand_state))
+
+	__device__ Math::Vector3f random_in_unit_sphere(curandState *local_rand_state) {
+		Math::Vector3f p;
+		do {
+			p = RANDVEC3*2.f - Math::makeVector(1.f, 1.f, 1.f);
+		} while (p.norm2() >= 1.0f);
+		return p;
+	}
+
+	__device__  float ombrage(const RayTriangleIntersection& intersection, PointLight const& light, const BVH* bvh) {
 
 		RayTriangleIntersection mur;
 		Math::Vector3f light_dir = (intersection.intersection() - light.position()).normalized();
@@ -36,7 +56,7 @@ namespace scene {
 		return bvh->getLights();
 	}
 
-	__device__ __host__ RGBColor phongDirect(Ray const & ray, RayTriangleIntersection const & intersection, int depth,const BVH* bvh) {
+	__device__  RGBColor phongDirect(Ray const & ray, RayTriangleIntersection const & intersection, int depth,const BVH* bvh) {
 		//Initialisation des variables
 		RGBColor result(0.0, 0.0, 0.0); //Couleur de retour
 
@@ -83,11 +103,41 @@ namespace scene {
 		return result;
 	}
 
-	__device__ __host__ RGBColor phongIndirect(Ray const & ray, RayTriangleIntersection const & intersection, int depth,int maxDepth) {
-		return intersection.triangle()->material()->getSpecular();
+	__device__  RGBColor sendRay(Ray const & ray, int depth, int maxDepth, const BVH* bvh, curandState *local_rand_state);
+
+	__device__  RGBColor phongIndirect(Ray const & ray, RayTriangleIntersection const & intersection, int depth,int maxDepth, const BVH* bvh, curandState *local_rand_state) {
+		RGBColor result;
+		Material* material = intersection.triangle()->material();
+
+		double rouletteRusse = 1.;
+		double alpha = 0.;
+		if (rouletteRusse > alpha) {
+			Math::Vector3f normal = intersection.triangle()->sampleNormal(intersection.uTriangleValue(), intersection.vTriangleValue(), ray.source()).normalized();
+			Math::Vector3f reflected = Triangle::reflectionDirection(normal, ray.direction()).normalized();
+			Math::Vector3f indirect;
+			do {
+				indirect = random_in_unit_sphere(local_rand_state);
+			} while (indirect*normal < 0);
+			Ray rayIndirect(intersection.intersection() + indirect * 0.001, indirect);
+
+			//RGBColor brdf = BRDFLib::computeColor(ray, intersection, indirect);
+			RGBColor brdf(1.f,1.f,1.f);
+
+			double pdf = 1.;
+
+			RGBColor test = sendRay(rayIndirect, depth + 1, maxDepth, bvh, local_rand_state)*brdf / pdf;
+
+			result = result + test;
+		}
+
+		result = result * (1 / (1 - alpha));
+
+		return result;
 	}
 
-	__device__ __host__ RGBColor sendRay(Ray const & ray, int depth, int maxDepth,const BVH* bvh)
+	
+
+	__device__ RGBColor sendRay(Ray const & ray, int depth, int maxDepth,const BVH* bvh, curandState *local_rand_state)
 	{
 		RGBColor result(0.0, 0.0, 0.0);
 		RGBColor brouillard(0.1f, 0.1f, 0.1f);
@@ -119,7 +169,7 @@ namespace scene {
 					result = result + material->getSpecular()*sendRay(reflexion, depth + 1, maxDepth, diffuseSamples, specularSamples);
 				}*/
 
-				result = result + scene::phongIndirect(ray, intersection, depth + 1, maxDepth);
+				result = result + scene::phongIndirect(ray, intersection, depth + 1, maxDepth, bvh, local_rand_state);
 
 				if (brouill) {
 					float d = intersection.tRayValue();
@@ -154,7 +204,7 @@ namespace scene {
 		return result;
 	}
 
-	__global__ void render(RGBColor* d_fb, const size_t height, const size_t width,const Camera* d_cam,const BVH* d_bvh, bool reset)
+	__global__ void render(RGBColor* d_fb, const size_t height, const size_t width,const Camera* d_cam,const BVH* d_bvh, bool reset, curandState *rand_state)
 	{
 		const unsigned int i = threadIdx.x + blockIdx.x * blockDim.x;
 		const unsigned int j = threadIdx.y + blockIdx.y * blockDim.y;
@@ -167,11 +217,14 @@ namespace scene {
 			Ray ray = d_cam->getRay(u, v);
 
 			RGBColor & pixel = d_fb[index];
+
+			curandState* local_rand_state = &rand_state[index];
+
 			if (reset) {
-				pixel= sendRay(ray, 0, 5, d_bvh);
+				pixel= sendRay(ray, 0, 5, d_bvh, local_rand_state);
 			}
 			else {
-				pixel = pixel + sendRay(ray, 0, 5, d_bvh);
+				pixel = pixel + sendRay(ray, 0, 5, d_bvh, local_rand_state);
 			}
 		}
 	}
@@ -184,6 +237,7 @@ private :
 
 	Camera* d_cam;
 	BVH* d_bvh;
+
 
 public :
 
@@ -206,10 +260,10 @@ public :
 		cudaMemcpy(d_cam, &cam, sizeof(Camera), cudaMemcpyHostToDevice);
 	}
 
-	void compute (RGBColor* d_fb,  dim3 const &  grid_size,  dim3 const &  block_size,int nb_pass,bool reset)
+	void compute (RGBColor* d_fb,  dim3 const &  grid_size,  dim3 const &  block_size,int nb_pass,bool reset, curandState *rand_state)
 	{
 		//std::cout << "Pass "<<nb_pass<<std::endl;
-		scene::render << < grid_size, block_size >> > (d_fb, m_visu->getHeight(), m_visu->getWidth(),d_cam,d_bvh, reset);
+		scene::render << < grid_size, block_size >> > (d_fb, m_visu->getHeight(), m_visu->getWidth(),d_cam,d_bvh, reset, rand_state);
 	}
 
 	static const int MAX_BOUNCES = 5;
