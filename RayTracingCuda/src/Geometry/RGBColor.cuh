@@ -42,7 +42,7 @@
 
 		__device__ __host__ float grey() const
 		{
-			return (m_color[0] + m_color[1] + m_color[2]) / 3.0;
+			return (m_color[0] + m_color[1] + m_color[2]) / 3.0f;
 		}
 
 		__device__ __host__ RGBColor operator+ (RGBColor const & c) const

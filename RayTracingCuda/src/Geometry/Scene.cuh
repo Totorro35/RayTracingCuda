@@ -10,7 +10,9 @@
 #include "Geometry/Material.cuh"
 #include "Geometry/RayTriangleIntersection.cuh"
 #include "Structure/Cornell.cuh"
+
 #include <curand_kernel.h>
+#include "Geometry/BRDFLib.cuh"
 
 #include "Structure/BVH.cuh"
 
@@ -52,8 +54,13 @@ namespace scene {
 		return 0.;
 	}
 
-	__device__ __host__ const PointLight* lightSampling(const BVH* bvh) {
-		return bvh->getLights();
+	__device__ __host__ PointLight samplingSphere(const PointLight& light0) {
+		double phi = acos(sqrt(0.3));
+		double theta = 2 * M_PI*0.3;
+
+		Math::Vector3f translation = Math::getVector(theta, phi)*light0.getRadius();
+
+		return PointLight(light0.position() + translation, light0.color());
 	}
 
 	__device__  RGBColor phongDirect(Ray const & ray, RayTriangleIntersection const & intersection, int depth,const BVH* bvh) {
@@ -66,10 +73,10 @@ namespace scene {
 		Math::Vector3f intersect_point = intersection.intersection(); //Point d'intersection sur le triangle
 		Math::Vector3f viewer = (ray.source() - intersect_point).normalized(); //Direction de la source
 
-		const PointLight* lights = lightSampling(bvh);
+		const PointLight* lights = bvh->getLights();
 
 		for (int i = 0; i < bvh->getNumberLights();++i) {
-			PointLight light = lights[i];
+			PointLight light = samplingSphere(lights[i]);
 
 			//Valeur d'ombrage
 			double shadow = ombrage(intersection, light,bvh);
@@ -84,16 +91,13 @@ namespace scene {
 
 			double G = 1. / (distance + 1);
 
-			//RGBColor brdf = BRDFLib::computeColor(ray, intersection, light_dir);
-			RGBColor brdf = material->getDiffuse()*(normal*light_dir);
+			RGBColor brdf = BRDFLib::computeColor(ray, intersection, light_dir);
 
-			//light.computeScore();
-			//Proba Light a revoir
-			//double proba_light = 1 / m_scoreLight;
 			double proba_light = 1.;
 
 			result = result + light.color() * brdf * G * shadow * proba_light;
 		}
+		delete[] lights;
 
 		result = result / double(bvh->getNumberLights());
 
@@ -120,8 +124,8 @@ namespace scene {
 			} while (indirect*normal < 0);
 			Ray rayIndirect(intersection.intersection() + indirect * 0.001, indirect);
 
-			//RGBColor brdf = BRDFLib::computeColor(ray, intersection, indirect);
-			RGBColor brdf(1.f,1.f,1.f);
+			RGBColor brdf = BRDFLib::computeColor(ray, intersection, indirect);
+			//RGBColor brdf(1.f,1.f,1.f);
 
 			double pdf = 1.;
 
@@ -145,8 +149,6 @@ namespace scene {
 		float df = 30.;
 		bool brouill = false;
 
-		//result = RGBColor(abs(ray.direction()[0]), abs(ray.direction()[1]), abs(ray.direction()[2]))*1000;
-		//return result;
 		if (depth <= maxDepth) {
 
 			//Calcul de l'intersection
@@ -164,10 +166,6 @@ namespace scene {
 					return RGBColor(intersection.tRayValue());
 				}
 				result = scene::phongDirect(ray, intersection, depth,bvh);
-				/*
-				if (!material->getSpecular().isBlack()) {
-					result = result + material->getSpecular()*sendRay(reflexion, depth + 1, maxDepth, diffuseSamples, specularSamples);
-				}*/
 
 				result = result + scene::phongIndirect(ray, intersection, depth + 1, maxDepth, bvh, local_rand_state);
 

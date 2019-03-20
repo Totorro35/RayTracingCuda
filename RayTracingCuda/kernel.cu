@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
 
 	Scene scene(&visu);
 
-	const dim3 block_size(4, 8);
+	const dim3 block_size(8,16);
 	const dim3 grid_size = dim3(divide_up(height, block_size.x), divide_up(width, block_size.y));
 
 	RGBColor * d_fbf;
@@ -44,6 +44,8 @@ int main(int argc, char *argv[])
 
 	scene::render_init << <grid_size, block_size >> > (width, height, d_rand_state);
 
+
+	std::cout << "Le rendu peut commencer !\n\n Appuyer sur espace" << std::endl;
 
 	while (1) {
 
